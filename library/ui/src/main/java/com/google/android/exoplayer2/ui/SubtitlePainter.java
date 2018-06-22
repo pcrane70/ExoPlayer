@@ -412,4 +412,5 @@ import com.google.android.exoplayer2.util.Util;
     // equals methods, so we perform one explicitly here.
     return first == second || (first != null && first.equals(second));
   }
+
 }
