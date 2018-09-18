@@ -153,6 +153,14 @@ public class DashManifestParserTest {
   }
 
   @Test
+  public void testParseMediaPresentationDescriptionCanParseProgramInformation() throws IOException {
+    DashManifestParser parser = new DashManifestParser();
+    DashManifest mpd = parser.parse(Uri.parse("Https://example.com/test.mpd"),
+            TestUtil.getInputStream(RuntimeEnvironment.application, SAMPLE_MPD_1));
+    assertThat(mpd.programInformation).isEqualTo("SampleProgramInformation");
+  }
+
+  @Test
   public void testParseCea608AccessibilityChannel() {
     assertThat(
             DashManifestParser.parseCea608AccessibilityChannel(

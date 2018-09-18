@@ -86,12 +86,14 @@ public class DashManifest implements FilterableManifest<DashManifest> {
    */
   public final Uri location;
 
+  public final String programInformation;
+
   private final List<Period> periods;
 
   public DashManifest(long availabilityStartTimeMs, long durationMs, long minBufferTimeMs,
       boolean dynamic, long minUpdatePeriodMs, long timeShiftBufferDepthMs,
       long suggestedPresentationDelayMs, long publishTimeMs, UtcTimingElement utcTiming,
-      Uri location, List<Period> periods) {
+      Uri location, String programInformation, List<Period> periods) {
     this.availabilityStartTimeMs = availabilityStartTimeMs;
     this.durationMs = durationMs;
     this.minBufferTimeMs = minBufferTimeMs;
@@ -102,6 +104,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
     this.publishTimeMs = publishTimeMs;
     this.utcTiming = utcTiming;
     this.location = location;
+    this.programInformation = programInformation;
     this.periods = periods == null ? Collections.emptyList() : periods;
   }
 
@@ -150,7 +153,7 @@ public class DashManifest implements FilterableManifest<DashManifest> {
     long newDuration = durationMs != C.TIME_UNSET ? durationMs - shiftMs : C.TIME_UNSET;
     return new DashManifest(availabilityStartTimeMs, newDuration, minBufferTimeMs, dynamic,
         minUpdatePeriodMs, timeShiftBufferDepthMs, suggestedPresentationDelayMs, publishTimeMs,
-        utcTiming, location, copyPeriods);
+        utcTiming, location, programInformation, copyPeriods);
   }
 
   private static ArrayList<AdaptationSet> copyAdaptationSets(

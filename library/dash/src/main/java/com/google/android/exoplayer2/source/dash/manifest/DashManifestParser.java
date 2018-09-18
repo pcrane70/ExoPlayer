@@ -122,6 +122,7 @@ public class DashManifestParser extends DefaultHandler
     long publishTimeMs = parseDateTime(xpp, "publishTime", C.TIME_UNSET);
     UtcTimingElement utcTiming = null;
     Uri location = null;
+    String programInformation = null;
 
     List<Period> periods = new ArrayList<>();
     long nextPeriodStartMs = dynamic ? C.TIME_UNSET : 0;
@@ -138,7 +139,9 @@ public class DashManifestParser extends DefaultHandler
         utcTiming = parseUtcTiming(xpp);
       } else if (XmlPullParserUtil.isStartTag(xpp, "Location")) {
         location = Uri.parse(xpp.nextText());
-      } else if (XmlPullParserUtil.isStartTag(xpp, "Period") && !seenEarlyAccessPeriod) {
+      }  else if (XmlPullParserUtil.isStartTag(xpp, "ProgramInformation")) {
+        programInformation = parseProgramInformation(xpp);
+      }  else if (XmlPullParserUtil.isStartTag(xpp, "Period") && !seenEarlyAccessPeriod) {
         Pair<Period, Long> periodWithDurationMs = parsePeriod(xpp, baseUrl, nextPeriodStartMs);
         Period period = periodWithDurationMs.first;
         if (period.startMs == C.TIME_UNSET) {
@@ -173,16 +176,16 @@ public class DashManifestParser extends DefaultHandler
 
     return buildMediaPresentationDescription(availabilityStartTime, durationMs, minBufferTimeMs,
         dynamic, minUpdateTimeMs, timeShiftBufferDepthMs, suggestedPresentationDelayMs,
-        publishTimeMs, utcTiming, location, periods);
+        publishTimeMs, utcTiming, location, programInformation, periods);
   }
 
   protected DashManifest buildMediaPresentationDescription(long availabilityStartTime,
       long durationMs, long minBufferTimeMs, boolean dynamic, long minUpdateTimeMs,
       long timeShiftBufferDepthMs, long suggestedPresentationDelayMs, long publishTimeMs,
-      UtcTimingElement utcTiming, Uri location, List<Period> periods) {
+      UtcTimingElement utcTiming, Uri location, String programInformation, List<Period> periods) {
     return new DashManifest(availabilityStartTime, durationMs, minBufferTimeMs,
         dynamic, minUpdateTimeMs, timeShiftBufferDepthMs, suggestedPresentationDelayMs,
-        publishTimeMs, utcTiming, location, periods);
+        publishTimeMs, utcTiming, location, programInformation, periods);
   }
 
   protected UtcTimingElement parseUtcTiming(XmlPullParser xpp) {
@@ -976,6 +979,10 @@ public class DashManifestParser extends DefaultHandler
 
   protected RangedUri buildRangedUri(String urlText, long rangeStart, long rangeLength) {
     return new RangedUri(urlText, rangeStart, rangeLength);
+  }
+
+  protected String parseProgramInformation(XmlPullParser xpp) throws IOException, XmlPullParserException {
+    return xpp.nextText();
   }
 
   // AudioChannelConfiguration parsing.
