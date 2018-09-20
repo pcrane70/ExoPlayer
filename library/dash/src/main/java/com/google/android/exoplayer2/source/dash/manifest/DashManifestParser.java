@@ -42,7 +42,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -982,7 +984,31 @@ public class DashManifestParser extends DefaultHandler
   }
 
   protected String parseProgramInformation(XmlPullParser xpp) throws IOException, XmlPullParserException {
-    return xpp.nextText();
+    String title = "";
+    String source = "";
+    String copyright = "";
+    String other = "";
+    Map<String, String> attributeMap = new HashMap<>();
+    do {
+      xpp.next();
+      if (XmlPullParserUtil.isStartTag(xpp, "Title")) {
+        title = xpp.getText();
+      } else if (XmlPullParserUtil.isStartTag(xpp, "Source")) {
+        source = xpp.getText();
+      } else if (XmlPullParserUtil.isStartTag(xpp, "Copyright")) {
+        copyright = xpp.getText();
+      } else if (xpp.getAttributeCount() > 0){
+        for (int i = 0; i < xpp.getAttributeCount() - 1; i++) {
+          String currentAttribute = xpp.getAttributeValue(i);
+          if (!currentAttribute.isEmpty()) {
+            String value = xpp.getAttributeValue(i + 1);
+            attributeMap.put(currentAttribute, value);
+          }
+        }
+      }
+    } while (!XmlPullParserUtil.isEndTag(xpp, "ProgramInformation"));
+    ProgramInformation programInformation = new ProgramInformation(title, source, copyright, other, attributeMap);
+    return other;
   }
 
   // AudioChannelConfiguration parsing.
