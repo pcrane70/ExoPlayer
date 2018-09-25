@@ -86,14 +86,17 @@ public class DashManifest implements FilterableManifest<DashManifest> {
    */
   public final Uri location;
 
-  public final String programInformation;
+  /**
+   * The ProgramInformation of this manifest.
+   */
+  public final ProgramInformation programInformation;
 
   private final List<Period> periods;
 
   public DashManifest(long availabilityStartTimeMs, long durationMs, long minBufferTimeMs,
       boolean dynamic, long minUpdatePeriodMs, long timeShiftBufferDepthMs,
       long suggestedPresentationDelayMs, long publishTimeMs, UtcTimingElement utcTiming,
-      Uri location, String programInformation, List<Period> periods) {
+      Uri location, ProgramInformation programInformation, List<Period> periods) {
     this.availabilityStartTimeMs = availabilityStartTimeMs;
     this.durationMs = durationMs;
     this.minBufferTimeMs = minBufferTimeMs;

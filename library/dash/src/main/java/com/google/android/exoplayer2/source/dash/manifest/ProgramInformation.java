@@ -1,6 +1,6 @@
 package com.google.android.exoplayer2.source.dash.manifest;
 
-import java.util.Map;
+import java.util.List;
 
 public class ProgramInformation {
     /**
@@ -18,17 +18,34 @@ public class ProgramInformation {
      */
     public final String copyright;
 
-    public final String other;
+    /**
+     * A list of custom elements.
+     */
+    public final List<byte[]> customEvents;
 
-    public final Map<String, String> attributeMap;
-
-    public ProgramInformation(String title, String source, String copyright, String other,
-                              Map<String, String> attributeMap) {
+    public ProgramInformation(String title, String source, String copyright, List<byte[]> customEvents) {
         this.title = title;
         this.source = source;
         this.copyright = copyright;
-        this.other = other;
-        this.attributeMap = attributeMap;
+        this.customEvents = customEvents;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ProgramInformation
+                && ((ProgramInformation) obj).copyright.equals(this.copyright)
+                && ((ProgramInformation) obj).source.equals(this.source)
+                && ((ProgramInformation) obj).title.equals(this.title)
+                && validateEvents(((ProgramInformation) obj).customEvents);
+    }
+
+    private boolean validateEvents(List<byte[]> customEvents) {
+        byte[] bytes = customEvents.get(0);
+            for (int j = 0; j < bytes.length; j++) {
+                if (!(bytes[j] == this.customEvents.get(0)[j]))
+                    return false;
+            }
+
+        return true;
     }
 }
-

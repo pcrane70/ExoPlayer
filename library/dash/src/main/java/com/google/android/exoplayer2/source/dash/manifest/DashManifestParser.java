@@ -42,6 +42,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +125,7 @@ public class DashManifestParser extends DefaultHandler
     long publishTimeMs = parseDateTime(xpp, "publishTime", C.TIME_UNSET);
     UtcTimingElement utcTiming = null;
     Uri location = null;
-    String programInformation = null;
+    ProgramInformation programInformation = null;
 
     List<Period> periods = new ArrayList<>();
     long nextPeriodStartMs = dynamic ? C.TIME_UNSET : 0;
@@ -184,7 +185,7 @@ public class DashManifestParser extends DefaultHandler
   protected DashManifest buildMediaPresentationDescription(long availabilityStartTime,
       long durationMs, long minBufferTimeMs, boolean dynamic, long minUpdateTimeMs,
       long timeShiftBufferDepthMs, long suggestedPresentationDelayMs, long publishTimeMs,
-      UtcTimingElement utcTiming, Uri location, String programInformation, List<Period> periods) {
+      UtcTimingElement utcTiming, Uri location, ProgramInformation programInformation, List<Period> periods) {
     return new DashManifest(availabilityStartTime, durationMs, minBufferTimeMs,
         dynamic, minUpdateTimeMs, timeShiftBufferDepthMs, suggestedPresentationDelayMs,
         publishTimeMs, utcTiming, location, programInformation, periods);
@@ -983,12 +984,11 @@ public class DashManifestParser extends DefaultHandler
     return new RangedUri(urlText, rangeStart, rangeLength);
   }
 
-  protected String parseProgramInformation(XmlPullParser xpp) throws IOException, XmlPullParserException {
+  protected ProgramInformation parseProgramInformation(XmlPullParser xpp) throws IOException, XmlPullParserException {
     String title = "";
     String source = "";
     String copyright = "";
-    String other = "";
-    Map<String, String> attributeMap = new HashMap<>();
+    List<byte[]> customEvents = new ArrayList<>();
     do {
       xpp.next();
       if (XmlPullParserUtil.isStartTag(xpp, "Title")) {
@@ -997,18 +997,28 @@ public class DashManifestParser extends DefaultHandler
         source = xpp.getText();
       } else if (XmlPullParserUtil.isStartTag(xpp, "Copyright")) {
         copyright = xpp.getText();
-      } else if (xpp.getAttributeCount() > 0){
-        for (int i = 0; i < xpp.getAttributeCount() - 1; i++) {
-          String currentAttribute = xpp.getAttributeValue(i);
-          if (!currentAttribute.isEmpty()) {
-            String value = xpp.getAttributeValue(i + 1);
-            attributeMap.put(currentAttribute, value);
-          }
+      } else {
+        byte[] customElement = parseCustomElement(xpp, new ByteArrayOutputStream(512));
+        if (customElement.length > 0) {
+          customEvents.add(customElement);
         }
       }
     } while (!XmlPullParserUtil.isEndTag(xpp, "ProgramInformation"));
-    ProgramInformation programInformation = new ProgramInformation(title, source, copyright, other, attributeMap);
-    return other;
+    return new ProgramInformation(title, source, copyright, customEvents);
+  }
+
+  private byte[] parseCustomElement(XmlPullParser xpp, ByteArrayOutputStream outputStream) throws IOException, XmlPullParserException {
+    XmlSerializer serializer = Xml.newSerializer();
+    serializer.setOutput(outputStream, C.UTF8_NAME);
+    if (xpp.getEventType() == XmlPullParser.START_TAG) {
+      serializer.startTag(xpp.getNamespace(), xpp.getName());
+      for (int i = 0; i < xpp.getAttributeCount(); i++) {
+        serializer.attribute(xpp.getAttributeNamespace(i), xpp.getAttributeName(i), xpp.getAttributeValue(i));
+      }
+      serializer.endTag(xpp.getNamespace(), xpp.getName());
+    }
+    serializer.flush();
+    return outputStream.toByteArray();
   }
 
   // AudioChannelConfiguration parsing.

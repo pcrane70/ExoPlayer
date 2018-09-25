@@ -16,6 +16,7 @@
 package com.google.android.exoplayer2.source.dash.manifest;
 
 import static com.google.common.truth.Truth.assertThat;
+import static junit.framework.TestCase.assertTrue;
 
 import android.net.Uri;
 import com.google.android.exoplayer2.C;
@@ -25,6 +26,7 @@ import com.google.android.exoplayer2.testutil.TestUtil;
 import com.google.android.exoplayer2.util.Util;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
@@ -157,7 +159,10 @@ public class DashManifestParserTest {
     DashManifestParser parser = new DashManifestParser();
     DashManifest mpd = parser.parse(Uri.parse("Https://example.com/test.mpd"),
             TestUtil.getInputStream(RuntimeEnvironment.application, SAMPLE_MPD_1));
-    assertThat(mpd.programInformation).isEqualTo("SampleProgramInformation");
+    List<byte[]> list = new ArrayList<>();
+    list.add("<scte214:ContentIdentifier type=\"URN\" value=\"urn:merlin:linear:stream:5939026565177792163\" />".getBytes());
+    ProgramInformation programInformation = new ProgramInformation("", "", "", list);
+    assertThat(mpd.programInformation).isEqualTo(programInformation);
   }
 
   @Test
