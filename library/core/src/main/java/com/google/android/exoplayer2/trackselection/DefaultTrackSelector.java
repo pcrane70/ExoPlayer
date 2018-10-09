@@ -174,6 +174,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     private boolean allowNonSeamlessAdaptiveness;
     private int maxVideoWidth;
     private int maxVideoHeight;
+    private int maxVideoFrameRate;
     private int maxVideoBitrate;
     private boolean exceedVideoConstraintsIfNecessary;
     private boolean exceedRendererCapabilitiesIfNecessary;
@@ -204,6 +205,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       allowNonSeamlessAdaptiveness = initialValues.allowNonSeamlessAdaptiveness;
       maxVideoWidth = initialValues.maxVideoWidth;
       maxVideoHeight = initialValues.maxVideoHeight;
+      maxVideoFrameRate = initialValues.maxVideoFrameRate;
       maxVideoBitrate = initialValues.maxVideoBitrate;
       exceedVideoConstraintsIfNecessary = initialValues.exceedVideoConstraintsIfNecessary;
       exceedRendererCapabilitiesIfNecessary = initialValues.exceedRendererCapabilitiesIfNecessary;
@@ -321,6 +323,16 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     public ParametersBuilder setMaxVideoSize(int maxVideoWidth, int maxVideoHeight) {
       this.maxVideoWidth = maxVideoWidth;
       this.maxVideoHeight = maxVideoHeight;
+      return this;
+    }
+
+    /**
+     * See {@link Parameters#maxVideoFrameRate}.
+     *
+     * @return This builder.
+     */
+    public ParametersBuilder setMaxVideoFrameRate(int maxVideoFrameRate) {
+      this.maxVideoFrameRate = maxVideoFrameRate;
       return this;
     }
 
@@ -538,6 +550,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
           allowNonSeamlessAdaptiveness,
           maxVideoWidth,
           maxVideoHeight,
+          maxVideoFrameRate,
           maxVideoBitrate,
           exceedVideoConstraintsIfNecessary,
           exceedRendererCapabilitiesIfNecessary,
@@ -613,6 +626,11 @@ public class DefaultTrackSelector extends MappingTrackSelector {
      * #viewportHeight} and {@link #viewportOrientationMayChange}) instead.
      */
     public final int maxVideoHeight;
+    /**
+     * Maximum allowed video frame rate. The default value is {@link Integer#MAX_VALUE} (i.e. no
+     * constraint).
+     */
+    public final int maxVideoFrameRate;
     /**
      * Maximum video bitrate. The default value is {@link Integer#MAX_VALUE} (i.e. no constraint).
      */
@@ -694,6 +712,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
           /* allowNonSeamlessAdaptiveness= */ true,
           /* maxVideoWidth= */ Integer.MAX_VALUE,
           /* maxVideoHeight= */ Integer.MAX_VALUE,
+          /* maxVideoFrameRate= */ Integer.MAX_VALUE,
           /* maxVideoBitrate= */ Integer.MAX_VALUE,
           /* exceedVideoConstraintsIfNecessary= */ true,
           /* exceedRendererCapabilitiesIfNecessary= */ true,
@@ -716,6 +735,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
         boolean allowNonSeamlessAdaptiveness,
         int maxVideoWidth,
         int maxVideoHeight,
+        int maxVideoFrameRate,
         int maxVideoBitrate,
         boolean exceedVideoConstraintsIfNecessary,
         boolean exceedRendererCapabilitiesIfNecessary,
@@ -735,6 +755,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       this.allowNonSeamlessAdaptiveness = allowNonSeamlessAdaptiveness;
       this.maxVideoWidth = maxVideoWidth;
       this.maxVideoHeight = maxVideoHeight;
+      this.maxVideoFrameRate = maxVideoFrameRate;
       this.maxVideoBitrate = maxVideoBitrate;
       this.exceedVideoConstraintsIfNecessary = exceedVideoConstraintsIfNecessary;
       this.exceedRendererCapabilitiesIfNecessary = exceedRendererCapabilitiesIfNecessary;
@@ -757,6 +778,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       this.allowNonSeamlessAdaptiveness = Util.readBoolean(in);
       this.maxVideoWidth = in.readInt();
       this.maxVideoHeight = in.readInt();
+      this.maxVideoFrameRate = in.readInt();
       this.maxVideoBitrate = in.readInt();
       this.exceedVideoConstraintsIfNecessary = Util.readBoolean(in);
       this.exceedRendererCapabilitiesIfNecessary = Util.readBoolean(in);
@@ -825,6 +847,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
           && allowNonSeamlessAdaptiveness == other.allowNonSeamlessAdaptiveness
           && maxVideoWidth == other.maxVideoWidth
           && maxVideoHeight == other.maxVideoHeight
+          && maxVideoFrameRate == other.maxVideoFrameRate
           && exceedVideoConstraintsIfNecessary == other.exceedVideoConstraintsIfNecessary
           && exceedRendererCapabilitiesIfNecessary == other.exceedRendererCapabilitiesIfNecessary
           && viewportOrientationMayChange == other.viewportOrientationMayChange
@@ -848,6 +871,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       result = 31 * result + (allowNonSeamlessAdaptiveness ? 1 : 0);
       result = 31 * result + maxVideoWidth;
       result = 31 * result + maxVideoHeight;
+      result = 31 * result + maxVideoFrameRate;
       result = 31 * result + (exceedVideoConstraintsIfNecessary ? 1 : 0);
       result = 31 * result + (exceedRendererCapabilitiesIfNecessary ? 1 : 0);
       result = 31 * result + (viewportOrientationMayChange ? 1 : 0);
@@ -882,6 +906,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       Util.writeBoolean(dest, allowNonSeamlessAdaptiveness);
       dest.writeInt(maxVideoWidth);
       dest.writeInt(maxVideoHeight);
+      dest.writeInt(maxVideoFrameRate);
       dest.writeInt(maxVideoBitrate);
       Util.writeBoolean(dest, exceedVideoConstraintsIfNecessary);
       Util.writeBoolean(dest, exceedRendererCapabilitiesIfNecessary);
@@ -1433,10 +1458,19 @@ public class DefaultTrackSelector extends MappingTrackSelector {
             && (mixedMimeTypeAdaptationSupports & requiredAdaptiveSupport) != 0;
     for (int i = 0; i < groups.length; i++) {
       TrackGroup group = groups.get(i);
-      int[] adaptiveTracks = getAdaptiveVideoTracksForGroup(group, formatSupport[i],
-          allowMixedMimeTypes, requiredAdaptiveSupport, params.maxVideoWidth, params.maxVideoHeight,
-          params.maxVideoBitrate, params.viewportWidth, params.viewportHeight,
-          params.viewportOrientationMayChange);
+      int[] adaptiveTracks =
+          getAdaptiveVideoTracksForGroup(
+              group,
+              formatSupport[i],
+              allowMixedMimeTypes,
+              requiredAdaptiveSupport,
+              params.maxVideoWidth,
+              params.maxVideoHeight,
+              params.maxVideoFrameRate,
+              params.maxVideoBitrate,
+              params.viewportWidth,
+              params.viewportHeight,
+              params.viewportOrientationMayChange);
       if (adaptiveTracks.length > 0) {
         return Assertions.checkNotNull(adaptiveTrackSelectionFactory)
             .createTrackSelection(group, bandwidthMeter, adaptiveTracks);
@@ -1445,9 +1479,17 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     return null;
   }
 
-  private static int[] getAdaptiveVideoTracksForGroup(TrackGroup group, int[] formatSupport,
-      boolean allowMixedMimeTypes, int requiredAdaptiveSupport, int maxVideoWidth,
-      int maxVideoHeight, int maxVideoBitrate, int viewportWidth, int viewportHeight,
+  private static int[] getAdaptiveVideoTracksForGroup(
+      TrackGroup group,
+      int[] formatSupport,
+      boolean allowMixedMimeTypes,
+      int requiredAdaptiveSupport,
+      int maxVideoWidth,
+      int maxVideoHeight,
+      int maxVideoFrameRate,
+      int maxVideoBitrate,
+      int viewportWidth,
+      int viewportHeight,
       boolean viewportOrientationMayChange) {
     if (group.length < 2) {
       return NO_TRACKS;
@@ -1468,9 +1510,17 @@ public class DefaultTrackSelector extends MappingTrackSelector {
         int trackIndex = selectedTrackIndices.get(i);
         String sampleMimeType = group.getFormat(trackIndex).sampleMimeType;
         if (seenMimeTypes.add(sampleMimeType)) {
-          int countForMimeType = getAdaptiveVideoTrackCountForMimeType(group, formatSupport,
-              requiredAdaptiveSupport, sampleMimeType, maxVideoWidth, maxVideoHeight,
-              maxVideoBitrate, selectedTrackIndices);
+          int countForMimeType =
+              getAdaptiveVideoTrackCountForMimeType(
+                  group,
+                  formatSupport,
+                  requiredAdaptiveSupport,
+                  sampleMimeType,
+                  maxVideoWidth,
+                  maxVideoHeight,
+                  maxVideoFrameRate,
+                  maxVideoBitrate,
+                  selectedTrackIndices);
           if (countForMimeType > selectedMimeTypeTrackCount) {
             selectedMimeType = sampleMimeType;
             selectedMimeTypeTrackCount = countForMimeType;
@@ -1480,8 +1530,16 @@ public class DefaultTrackSelector extends MappingTrackSelector {
     }
 
     // Filter by the selected mime type.
-    filterAdaptiveVideoTrackCountForMimeType(group, formatSupport, requiredAdaptiveSupport,
-        selectedMimeType, maxVideoWidth, maxVideoHeight, maxVideoBitrate, selectedTrackIndices);
+    filterAdaptiveVideoTrackCountForMimeType(
+        group,
+        formatSupport,
+        requiredAdaptiveSupport,
+        selectedMimeType,
+        maxVideoWidth,
+        maxVideoHeight,
+        maxVideoFrameRate,
+        maxVideoBitrate,
+        selectedTrackIndices);
 
     return selectedTrackIndices.size() < 2 ? NO_TRACKS : Util.toArray(selectedTrackIndices);
   }
@@ -1493,13 +1551,20 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       @Nullable String mimeType,
       int maxVideoWidth,
       int maxVideoHeight,
+      int maxVideoFrameRate,
       int maxVideoBitrate,
       List<Integer> selectedTrackIndices) {
     int adaptiveTrackCount = 0;
     for (int i = 0; i < selectedTrackIndices.size(); i++) {
       int trackIndex = selectedTrackIndices.get(i);
-      if (isSupportedAdaptiveVideoTrack(group.getFormat(trackIndex), mimeType,
-          formatSupport[trackIndex], requiredAdaptiveSupport, maxVideoWidth, maxVideoHeight,
+      if (isSupportedAdaptiveVideoTrack(
+          group.getFormat(trackIndex),
+          mimeType,
+          formatSupport[trackIndex],
+          requiredAdaptiveSupport,
+          maxVideoWidth,
+          maxVideoHeight,
+          maxVideoFrameRate,
           maxVideoBitrate)) {
         adaptiveTrackCount++;
       }
@@ -1514,12 +1579,19 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       @Nullable String mimeType,
       int maxVideoWidth,
       int maxVideoHeight,
+      int maxVideoFrameRate,
       int maxVideoBitrate,
       List<Integer> selectedTrackIndices) {
     for (int i = selectedTrackIndices.size() - 1; i >= 0; i--) {
       int trackIndex = selectedTrackIndices.get(i);
-      if (!isSupportedAdaptiveVideoTrack(group.getFormat(trackIndex), mimeType,
-          formatSupport[trackIndex], requiredAdaptiveSupport, maxVideoWidth, maxVideoHeight,
+      if (!isSupportedAdaptiveVideoTrack(
+          group.getFormat(trackIndex),
+          mimeType,
+          formatSupport[trackIndex],
+          requiredAdaptiveSupport,
+          maxVideoWidth,
+          maxVideoHeight,
+          maxVideoFrameRate,
           maxVideoBitrate)) {
         selectedTrackIndices.remove(i);
       }
@@ -1533,11 +1605,14 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       int requiredAdaptiveSupport,
       int maxVideoWidth,
       int maxVideoHeight,
+      int maxVideoFrameRate,
       int maxVideoBitrate) {
-    return isSupported(formatSupport, false) && ((formatSupport & requiredAdaptiveSupport) != 0)
+    return isSupported(formatSupport, false)
+        && ((formatSupport & requiredAdaptiveSupport) != 0)
         && (mimeType == null || Util.areEqual(format.sampleMimeType, mimeType))
         && (format.width == Format.NO_VALUE || format.width <= maxVideoWidth)
         && (format.height == Format.NO_VALUE || format.height <= maxVideoHeight)
+        && (format.frameRate == Format.NO_VALUE || format.frameRate <= maxVideoFrameRate)
         && (format.bitrate == Format.NO_VALUE || format.bitrate <= maxVideoBitrate);
   }
 
@@ -1557,10 +1632,14 @@ public class DefaultTrackSelector extends MappingTrackSelector {
         if (isSupported(trackFormatSupport[trackIndex],
             params.exceedRendererCapabilitiesIfNecessary)) {
           Format format = trackGroup.getFormat(trackIndex);
-          boolean isWithinConstraints = selectedTrackIndices.contains(trackIndex)
-              && (format.width == Format.NO_VALUE || format.width <= params.maxVideoWidth)
-              && (format.height == Format.NO_VALUE || format.height <= params.maxVideoHeight)
-              && (format.bitrate == Format.NO_VALUE || format.bitrate <= params.maxVideoBitrate);
+          boolean isWithinConstraints =
+              selectedTrackIndices.contains(trackIndex)
+                  && (format.width == Format.NO_VALUE || format.width <= params.maxVideoWidth)
+                  && (format.height == Format.NO_VALUE || format.height <= params.maxVideoHeight)
+                  && (format.frameRate == Format.NO_VALUE
+                      || format.frameRate <= params.maxVideoFrameRate)
+                  && (format.bitrate == Format.NO_VALUE
+                      || format.bitrate <= params.maxVideoBitrate);
           if (!isWithinConstraints && !params.exceedVideoConstraintsIfNecessary) {
             // Track should not be selected.
             continue;
@@ -2062,7 +2141,7 @@ public class DefaultTrackSelector extends MappingTrackSelector {
   }
 
   /** Represents how well an audio track matches the selection {@link Parameters}. */
-  private static final class AudioTrackScore implements Comparable<AudioTrackScore> {
+  protected static final class AudioTrackScore implements Comparable<AudioTrackScore> {
 
     private final Parameters parameters;
     private final int withinRendererCapabilitiesScore;

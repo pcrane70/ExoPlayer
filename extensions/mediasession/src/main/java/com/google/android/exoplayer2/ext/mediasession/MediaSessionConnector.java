@@ -259,6 +259,9 @@ public final class MediaSessionConnector {
 
     /** See {@link MediaSessionCompat.Callback#onSetRating(RatingCompat)}. */
     void onSetRating(Player player, RatingCompat rating);
+
+    /** See {@link MediaSessionCompat.Callback#onSetRating(RatingCompat, Bundle)}. */
+    void onSetRating(Player player, RatingCompat rating, Bundle extras);
   }
 
   /**
@@ -401,7 +404,7 @@ public final class MediaSessionConnector {
    * <p>The order in which any {@link CustomActionProvider}s are passed determines the order of the
    * actions published with the playback state of the session.
    *
-   * @param player The player to be connected to the {@code MediaSession}, or {@link null} to
+   * @param player The player to be connected to the {@code MediaSession}, or {@code null} to
    *     disconnect the current player.
    * @param playbackPreparer An optional {@link PlaybackPreparer} for preparing the player.
    * @param customActionProviders Optional {@link CustomActionProvider}s to publish and handle
@@ -1000,6 +1003,13 @@ public final class MediaSessionConnector {
     public void onSetRating(RatingCompat rating) {
       if (canDispatchToRatingCallback(PlaybackStateCompat.ACTION_SET_RATING)) {
         ratingCallback.onSetRating(player, rating);
+      }
+    }
+
+    @Override
+    public void onSetRating(RatingCompat rating, Bundle extras) {
+      if (canDispatchToRatingCallback(PlaybackStateCompat.ACTION_SET_RATING)) {
+        ratingCallback.onSetRating(player, rating, extras);
       }
     }
 

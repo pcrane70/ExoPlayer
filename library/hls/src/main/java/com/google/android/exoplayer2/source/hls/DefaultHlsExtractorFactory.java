@@ -28,7 +28,6 @@ import com.google.android.exoplayer2.extractor.ts.Ac3Extractor;
 import com.google.android.exoplayer2.extractor.ts.AdtsExtractor;
 import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
 import com.google.android.exoplayer2.extractor.ts.TsExtractor;
-import com.google.android.exoplayer2.source.UnrecognizedInputFormatException;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.TimestampAdjuster;
 import java.io.EOFException;
@@ -51,6 +50,24 @@ public final class DefaultHlsExtractorFactory implements HlsExtractorFactory {
   public static final String MP4_FILE_EXTENSION_PREFIX = ".mp4";
   public static final String VTT_FILE_EXTENSION = ".vtt";
   public static final String WEBVTT_FILE_EXTENSION = ".webvtt";
+
+  @DefaultTsPayloadReaderFactory.Flags private final int payloadReaderFactoryFlags;
+
+  /** Creates a factory for HLS segment extractors. */
+  public DefaultHlsExtractorFactory() {
+    this(/* payloadReaderFactoryFlags= */ 0);
+  }
+
+  /**
+   * Creates a factory for HLS segment extractors.
+   *
+   * @param payloadReaderFactoryFlags Flags to add when constructing any {@link
+   *     DefaultTsPayloadReaderFactory} instances. Other flags may be added on top of {@code
+   *     payloadReaderFactoryFlags} when creating {@link DefaultTsPayloadReaderFactory}.
+   */
+  public DefaultHlsExtractorFactory(int payloadReaderFactoryFlags) {
+    this.payloadReaderFactoryFlags = payloadReaderFactoryFlags;
+  }
 
   @Override
   public Pair<Extractor, Boolean> createExtractor(
@@ -139,14 +156,16 @@ public final class DefaultHlsExtractorFactory implements HlsExtractorFactory {
     }
 
     if (!(extractorByFileExtension instanceof TsExtractor)) {
-      TsExtractor tsExtractor = createTsExtractor(format, muxedCaptionFormats, timestampAdjuster);
+      TsExtractor tsExtractor =
+          createTsExtractor(
+              payloadReaderFactoryFlags, format, muxedCaptionFormats, timestampAdjuster);
       if (sniffQuietly(tsExtractor, extractorInput)) {
         return buildResult(tsExtractor);
       }
     }
 
-    throw new UnrecognizedInputFormatException(
-        "The segment does not seem to conform to any of the known HLS segment formats", uri);
+    // Fall back on the extractor created by file extension.
+    return buildResult(extractorByFileExtension);
   }
 
   private Extractor createExtractorByFileExtension(
@@ -181,17 +200,23 @@ public final class DefaultHlsExtractorFactory implements HlsExtractorFactory {
           muxedCaptionFormats != null ? muxedCaptionFormats : Collections.emptyList());
     } else {
       // For any other file extension, we assume TS format.
-      return createTsExtractor(format, muxedCaptionFormats, timestampAdjuster);
+      return createTsExtractor(
+          payloadReaderFactoryFlags, format, muxedCaptionFormats, timestampAdjuster);
     }
   }
 
   private static TsExtractor createTsExtractor(
-      Format format, List<Format> muxedCaptionFormats, TimestampAdjuster timestampAdjuster) {
+      @DefaultTsPayloadReaderFactory.Flags int userProvidedPayloadReaderFactoryFlags,
+      Format format,
+      List<Format> muxedCaptionFormats,
+      TimestampAdjuster timestampAdjuster) {
     @DefaultTsPayloadReaderFactory.Flags
-    int esReaderFactoryFlags = DefaultTsPayloadReaderFactory.FLAG_IGNORE_SPLICE_INFO_STREAM;
+    int payloadReaderFactoryFlags =
+        DefaultTsPayloadReaderFactory.FLAG_IGNORE_SPLICE_INFO_STREAM
+            | userProvidedPayloadReaderFactoryFlags;
     if (muxedCaptionFormats != null) {
       // The playlist declares closed caption renditions, we should ignore descriptors.
-      esReaderFactoryFlags |= DefaultTsPayloadReaderFactory.FLAG_OVERRIDE_CAPTION_DESCRIPTORS;
+      payloadReaderFactoryFlags |= DefaultTsPayloadReaderFactory.FLAG_OVERRIDE_CAPTION_DESCRIPTORS;
     } else {
       // The playlist does not provide any closed caption information. We preemptively declare a
       // closed caption track on channel 0.
@@ -209,17 +234,17 @@ public final class DefaultHlsExtractorFactory implements HlsExtractorFactory {
       // exist. If we know from the codec attribute that they don't exist, then we can
       // explicitly ignore them even if they're declared.
       if (!MimeTypes.AUDIO_AAC.equals(MimeTypes.getAudioMediaMimeType(codecs))) {
-        esReaderFactoryFlags |= DefaultTsPayloadReaderFactory.FLAG_IGNORE_AAC_STREAM;
+        payloadReaderFactoryFlags |= DefaultTsPayloadReaderFactory.FLAG_IGNORE_AAC_STREAM;
       }
       if (!MimeTypes.VIDEO_H264.equals(MimeTypes.getVideoMediaMimeType(codecs))) {
-        esReaderFactoryFlags |= DefaultTsPayloadReaderFactory.FLAG_IGNORE_H264_STREAM;
+        payloadReaderFactoryFlags |= DefaultTsPayloadReaderFactory.FLAG_IGNORE_H264_STREAM;
       }
     }
 
     return new TsExtractor(
         TsExtractor.MODE_HLS,
         timestampAdjuster,
-        new DefaultTsPayloadReaderFactory(esReaderFactoryFlags, muxedCaptionFormats));
+        new DefaultTsPayloadReaderFactory(payloadReaderFactoryFlags, muxedCaptionFormats));
   }
 
   private static Pair<Extractor, Boolean> buildResult(Extractor extractor) {
