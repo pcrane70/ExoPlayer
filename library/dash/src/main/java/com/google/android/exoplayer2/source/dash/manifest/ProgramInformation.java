@@ -1,5 +1,6 @@
 package com.google.android.exoplayer2.source.dash.manifest;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ProgramInformation {
@@ -47,5 +48,17 @@ public class ProgramInformation {
     }
 
     return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = 17;
+    result = 31 * result + title.hashCode();
+    result = 31 * result + source.hashCode();
+    result = 31 * result + copyright.hashCode();
+    for (int i = 0; i < customEvents.size(); i++) {
+      result = 31 * result + Arrays.hashCode(customEvents.get(i));
+    }
+    return result;
   }
 }
