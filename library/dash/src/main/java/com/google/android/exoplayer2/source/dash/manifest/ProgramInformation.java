@@ -53,9 +53,9 @@ public class ProgramInformation {
   @Override
   public int hashCode() {
     int result = 17;
-    result = 31 * result + title.hashCode();
-    result = 31 * result + source.hashCode();
-    result = 31 * result + copyright.hashCode();
+    result = 31 * result + (title != null ? title.hashCode() : 0);
+    result = 31 * result + (source != null ? source.hashCode() : 0);
+    result = 31 * result + (copyright != null ? copyright.hashCode() : 0);
     for (int i = 0; i < customEvents.size(); i++) {
       result = 31 * result + Arrays.hashCode(customEvents.get(i));
     }
